@@ -29,11 +29,13 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application source
 COPY main.py schemas.py feature_engineering.py model_loader.py ./
 
-# Copy serialized model artifacts
-# (run save_models.py first to populate this directory)
+# Copy serialized model artifacts if they exist.
+# The app starts in "degraded" mode if models are absent — deploy now,
+# add real models later by rebuilding with a populated models/ directory.
+RUN mkdir -p ./models
 COPY models/ ./models/
 
-EXPOSE 8000
+EXPOSE 8080
 
 # Use 2 workers; tune to your instance CPU count
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]

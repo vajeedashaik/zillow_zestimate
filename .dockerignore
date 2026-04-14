@@ -1,0 +1,45 @@
+# Node / Next.js frontend — not needed for the Python API container
+node_modules/
+.next/
+out/
+app/
+components/
+lib/
+data/
+types/
+public/
+*.tsx
+*.ts
+*.mjs
+postcss.config.*
+tailwind.config.*
+tsconfig.json
+package.json
+package-lock.json
+
+# Python dev / notebook artifacts
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Git & IDE
+.git/
+.gitignore
+.env*
+*.md
+*.txt
+!requirements.txt
+
+# Misc scripts not needed at runtime
+save_models.py
+benchmark.py
+batch_scorer.py
+lookup.py
+model.py
+curl_examples.sh
+zillow-scorer/

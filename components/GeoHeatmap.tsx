@@ -73,35 +73,45 @@ function HeatmapLayer({ data }: HeatmapLayerProps) {
 
     if (data.length === 0) return;
 
-    // leaflet.heat expects [lat, lon, intensity] where intensity ∈ [0, 1].
-    // We map logerror [-0.5, +0.5] → [0, 1] so:
-    //   0   = blue  (strongly underestimated, logerror ≈ -0.5)
-    //   0.5 = white (accurate,               logerror ≈  0)
-    //   1   = red   (strongly overestimated,  logerror ≈ +0.5)
-    const heatPoints = data.map(
-      (p) => [p.lat, p.lon, (p.logerror + 0.5)] as [number, number, number]
-    );
+    // leaflet.heat is a CJS side-effect plugin — import it dynamically so
+    // it runs client-side only and patches L with .heatLayer before use.
+    import('leaflet.heat').then(() => {
+      // Remove again in case data changed while the import was in flight
+      if (layerRef.current) {
+        (layerRef.current as L.Layer).remove();
+        layerRef.current = null;
+      }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const layer = (L as any).heatLayer(heatPoints, {
-      radius: 22,
-      blur: 18,
-      maxZoom: 17,
-      max: 1.0,
-      minOpacity: 0.25,
-      gradient: {
-        0.00: '#1e3a8a',  // deep blue  (logerror ≈ -0.5 – Zestimate underestimates)
-        0.25: '#60a5fa',  // sky blue
-        0.45: '#e0f2fe',  // pale blue-white
-        0.50: '#f8fafc',  // near white  (accurate)
-        0.55: '#fee2e2',  // pale red-white
-        0.75: '#f87171',  // salmon red
-        1.00: '#7f1d1d',  // deep red   (logerror ≈ +0.5 – Zestimate overestimates)
-      },
+      // leaflet.heat expects [lat, lon, intensity] where intensity ∈ [0, 1].
+      // We map logerror [-0.5, +0.5] → [0, 1] so:
+      //   0   = blue  (strongly underestimated, logerror ≈ -0.5)
+      //   0.5 = white (accurate,               logerror ≈  0)
+      //   1   = red   (strongly overestimated,  logerror ≈ +0.5)
+      const heatPoints = data.map(
+        (p) => [p.lat, p.lon, (p.logerror + 0.5)] as [number, number, number]
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const layer = (L as any).heatLayer(heatPoints, {
+        radius: 22,
+        blur: 18,
+        maxZoom: 17,
+        max: 1.0,
+        minOpacity: 0.25,
+        gradient: {
+          0.00: '#1e3a8a',  // deep blue  (logerror ≈ -0.5 – Zestimate underestimates)
+          0.25: '#60a5fa',  // sky blue
+          0.45: '#e0f2fe',  // pale blue-white
+          0.50: '#f8fafc',  // near white  (accurate)
+          0.55: '#fee2e2',  // pale red-white
+          0.75: '#f87171',  // salmon red
+          1.00: '#7f1d1d',  // deep red   (logerror ≈ +0.5 – Zestimate overestimates)
+        },
+      });
+
+      layerRef.current = layer;
+      layer.addTo(map);
     });
-
-    layerRef.current = layer;
-    layer.addTo(map);
 
     return () => {
       if (layerRef.current) {
