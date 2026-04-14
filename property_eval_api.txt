@@ -1,0 +1,34 @@
+I have a Zillow Zestimate residual error prediction ML project. Here is full context:
+
+PROJECT SUMMARY:
+- Goal: Predict logerror = log(Zestimate) - log(SalePrice) for California properties
+- Dataset: properties_2016.csv (~2.9M rows, LA/Orange/Ventura counties) + train_2016.csv (~90K transactions)
+- Model file: Model.py containing the full pipeline
+- Best model: Stacked ensemble (XGBoost + LightGBM + CatBoost + Ridge meta-model), CV RMSE = 0.0742
+- Key engineered features: property_age, tax_ratio, living_area_ratio, geo_cluster (KMeans k=25), geo_cluster_te, county_te, month_sin/cos
+
+TASK:
+Build a production-ready REST API that serves predictions from this trained ensemble.
+
+REQUIREMENTS:
+1. Use FastAPI with proper request/response Pydantic models
+2. Input schema must accept all key property features (taxamount, taxvaluedollarcnt, finishedsquarefeet12, lotsizesquarefeet, yearbuilt, latitude, longitude, transactiondate, fips)
+3. The API should run the same feature engineering from Model.py (property_age, tax_ratio, living_area_ratio, geo_cluster assignment via the trained KMeans, cyclical month encoding, county from FIPS, target encoding via stored cluster/county means)
+4. Endpoints needed:
+   - POST /predict — single property prediction, returns logerror + 95% confidence interval
+   - POST /predict/batch — list of properties, returns predictions array
+   - GET /health — model version, load status
+   - GET /model/info — CV RMSE scores per model, feature count, training date
+5. Load the serialized models (joblib) at startup with error handling
+6. Include a requirements.txt and a Dockerfile
+7. Add a /docs endpoint (FastAPI does this automatically via Swagger)
+8. Handle missing values the same way Model.py does (median imputation)
+
+OUTPUT:
+- main.py (FastAPI app)
+- schemas.py (Pydantic models)
+- model_loader.py (loads joblib artifacts)
+- feature_engineering.py (replicates Model.py transformations)
+- Dockerfile
+- requirements.txt
+- Example curl commands to test each endpoint

@@ -1,0 +1,32 @@
+I have a Zillow Zestimate residual error prediction ML project. Here is full context:
+
+PROJECT SUMMARY:
+- Dataset: properties_2016.csv (~2.9M rows, ~400MB), train_2016.csv (~90K rows)
+- Model: Stacked ensemble serialized via joblib (XGBoost + LightGBM + CatBoost + Ridge meta)
+- Pipeline in Model.py: data loading → dtype optimisation → missing value handling → feature engineering → spatial features (KMeans k=25) → target encoding → prediction
+- Memory constraint: full dataset uses ~2GB RAM after loading with optimised dtypes
+
+TASK:
+Build a scalable batch scoring pipeline in Python that scores all 2.9M properties and stores results efficiently for fast lookups.
+
+REQUIREMENTS:
+1. Use Dask or chunked Pandas (chunk_size=50,000) to process the full CSV without OOM errors
+2. For each chunk:
+   - Apply the same feature engineering as Model.py
+   - Assign geo_cluster using the saved KMeans model
+   - Apply stored target encoding means (load from JSON/pickle)
+   - Run ensemble predict — return logerror for each property
+3. Output: save results as partitioned Parquet files, one file per county (fips_6037.parquet, fips_6059.parquet, fips_6111.parquet)
+4. Build a fast lookup module:
+   - load_predictions(parcelid) → returns predicted logerror + prediction percentile rank
+   - get_cluster_stats(cluster_id) → mean, std, count for that geo cluster
+5. Add a progress bar (tqdm) and logging (time per chunk, memory usage)
+6. Write a benchmark script that times the full 2.9M row scoring run
+7. Include error handling for missing parcelids and malformed rows
+
+OUTPUT:
+- batch_scorer.py (main pipeline)
+- lookup.py (fast lookup functions)
+- benchmark.py (timing script)
+- README_batch.md (how to run, expected runtime, output schema)
+- requirements_batch.txt

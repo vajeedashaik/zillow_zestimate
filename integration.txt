@@ -1,0 +1,304 @@
+You are helping me complete my Zillow Zestimate Residual Error Prediction project for a student project expo. I need you to build a complete, polished Next.js website that showcases both the data science work AND includes all interactive applications. Build everything in one pass — I want a fully working site after this.
+
+══════════════════════════════════════════
+PROJECT CONTEXT
+══════════════════════════════════════════
+
+WHAT THIS PROJECT DOES:
+Predicts logerror = log(Zestimate) - log(SalePrice) for 2.9M California properties.
+- Positive logerror → Zestimate overestimated the home value (seller beware)
+- Negative logerror → Zestimate underestimated (buyer opportunity)
+- logerror ≈ 0 → Zestimate was accurate
+
+DATASET:
+- properties_2016.csv: ~2.9M rows, LA (FIPS 6037), Orange (FIPS 6059), Ventura (FIPS 6111) counties
+- train_2016.csv: ~90K transactions with logerror labels
+- Evaluation metric: RMSE (lower is better)
+
+MODEL RESULTS (CV RMSE):
+| Model          | RMSE   |
+|----------------|--------|
+| Ridge          | 0.0791 |
+| ExtraTrees     | 0.0763 |
+| XGBoost        | 0.0754 |
+| CatBoost       | 0.0751 |
+| LightGBM       | 0.0749 |
+| Ensemble Stack | 0.0742 | ← best
+
+PIPELINE STEPS (Model.py):
+1. Data loading + dtype optimisation
+2. EDA + outlier clipping (p1/p99)
+3. Missing value handling (drop >90% sparse, median/mode imputation)
+4. Feature engineering (12 new features)
+5. Spatial features: KMeans k=25 on lat/lon, cluster density
+6. Cross-validated target encoding (5-fold, no leakage)
+7. Multicollinearity reduction (corr >0.95, VIF >20)
+8. Baseline models: Ridge + ExtraTrees
+9. Boosting: XGBoost, LightGBM, CatBoost (5-fold CV)
+10. Bayesian tuning: Optuna (20 trials) on LightGBM
+11. OOF Stacking: base model predictions → Ridge meta-model
+12. SHAP explainability: TreeExplainer on XGBoost
+
+ENGINEERED FEATURES:
+- property_age = 2016 - yearbuilt
+- tax_ratio = taxamount / (taxvaluedollarcnt + 1)
+- structure_land_ratio = structureTax / (landTax + 1)
+- living_area_ratio = finishedSqFt / (lotSizeSqFt + 1)
+- month_sin / month_cos (cyclical encoding)
+- geo_cluster (KMeans k=25 on normalised lat/lon)
+- geo_cluster_density (property count per cluster)
+- cluster_mean_tax
+- geo_cluster_te (CV mean logerror per cluster)
+- county_te (CV mean logerror per county)
+- age_cluster_interaction = property_age × geo_cluster
+
+EXISTING TECH STACK:
+- Next.js 16 (App Router), TypeScript, Tailwind CSS, Recharts, Lucide React
+- Dark theme throughout
+- Existing components: Navbar, Hero, ProblemStatement, Pipeline, DataOverview,
+  FeatureEngineering, ModelComparison, StackingSection, SHAPSection, Footer
+- Existing data: data/mockData.ts
+
+══════════════════════════════════════════
+WHAT TO BUILD — COMPLETE SPEC
+══════════════════════════════════════════
+
+Build or upgrade ALL of the following. Preserve existing components where possible and extend them.
+
+───────────────────────────────────────
+1. HERO SECTION UPGRADE (update Hero.tsx)
+───────────────────────────────────────
+Add a prominent stats banner row with 5 metric cards:
+- 2.9M Properties analysed
+- 0.0742 CV RMSE (best ensemble)
+- 6 Models compared
+- 11 Features engineered
+- 3 Counties: LA · Orange · Ventura
+
+These should appear below the existing hero headline, styled as glowing stat cards that match the dark theme.
+
+───────────────────────────────────────
+2. COUNTY ERROR ANALYSIS (new component: CountyAnalysis.tsx)
+───────────────────────────────────────
+Add to the main page (page.tsx). Include:
+a) Grouped bar chart: mean logerror per county (LA, Orange, Ventura) — use realistic values:
+   - LA: mean=0.0142, Orange: mean=-0.0089, Ventura: mean=0.0031
+b) logerror distribution by property age bucket:
+   - 0–20 yrs: mean=0.021, 20–40 yrs: mean=0.008, 40–60 yrs: mean=-0.004, 60+ yrs: mean=-0.019
+c) A short insight callout: "LA properties are systematically overestimated; older homes tend to be underestimated"
+Use Recharts BarChart + ReferenceLine at 0.
+
+───────────────────────────────────────
+3. MODEL JOURNEY CHART (update ModelComparison.tsx)
+───────────────────────────────────────
+Add a line chart showing the improvement journey:
+Ridge(0.0791) → ExtraTrees(0.0763) → XGBoost(0.0754) → CatBoost(0.0751) → LightGBM(0.0749) → Ensemble(0.0742)
+- Add an annotation dot + label at the Ensemble point: "OOF Stacking — best result"
+- Add a horizontal reference line at 0.0791 (baseline) labelled "Ridge baseline"
+- Add a small delta badge: "−6.2% vs baseline"
+
+───────────────────────────────────────
+4. SHAP WATERFALL CHART (update SHAPSection.tsx)
+───────────────────────────────────────
+Add a waterfall chart for a real example property (a Pasadena LA home):
+- Base value: 0.0521
+- tax_ratio: +0.0183 (pushed error up — high tax relative to value)
+- geo_cluster_te: +0.0142 (cluster historically overestimated)
+- property_age: -0.0097 (older home, slight correction)
+- living_area_ratio: +0.0061
+- county_te: +0.0044
+- Final prediction: 0.0854
+- Caption: "Why did Zillow overestimate this Pasadena property by ~9%?"
+Use horizontal BarChart with red bars for positive (increases error) and blue for negative.
+
+───────────────────────────────────────
+5. LIVE PREDICTION DEMO (new page: app/demo/page.tsx)
+───────────────────────────────────────
+This is the most important page. A judge should be able to input a property and get a prediction.
+
+Input form fields:
+- Year Built (number, default: 1985)
+- Finished Sq Ft (number, default: 1800)
+- Lot Size Sq Ft (number, default: 6500)
+- Tax Amount $ (number, default: 8200)
+- Tax Value $ (number, default: 620000)
+- Transaction Month (select 1–12, default: 6)
+- County (select: Los Angeles / Orange County / Ventura)
+
+Client-side feature engineering (lib/featureEngineering.ts):
+- property_age = 2016 - yearBuilt
+- tax_ratio = taxAmount / (taxValue + 1)
+- living_area_ratio = finishedSqFt / (lotSize + 1)
+- month_sin = Math.sin(2 * Math.PI * month / 12)
+- month_cos = Math.cos(2 * Math.PI * month / 12)
+- county_te: LA=0.0142, Orange=-0.0089, Ventura=0.0031
+- geo_cluster_te: derive from tax_ratio buckets (low<0.01: -0.008, mid 0.01-0.02: 0.012, high>0.02: 0.024)
+
+Prediction formula (lib/mockPredictor.ts):
+logerror = 0.045 + (tax_ratio * 1.82) + (county_te * 0.8) + (geo_cluster_te * 0.6)
+           - (property_age * 0.00015) + (living_area_ratio * 0.003)
+           + small random noise (±0.002 seeded by inputs for consistency)
+confidence_low = logerror - 0.018
+confidence_high = logerror + 0.018
+
+Results to display:
+- Predicted logerror value (large, styled number)
+- Estimated true value range:
+  true_low = zestimate / Math.exp(confidence_high)
+  true_high = zestimate / Math.exp(confidence_low)
+  (Add a Zestimate input field so this works — default $750,000)
+- Risk badge:
+  logerror > 0.03 → OVERPRICED (red) — "Zillow may be overestimating"
+  logerror < -0.03 → UNDERPRICED (green) — "Zillow may be underestimating"
+  else → FAIR (gray) — "Zestimate looks reasonable"
+- Top 3 feature contributions (styled as mini bar chart)
+- "What this means for you" toggle — buyer vs seller plain-English advice
+
+───────────────────────────────────────
+6. BUYER/SELLER RISK CHECKER (new page: app/risk-checker/page.tsx)
+───────────────────────────────────────
+Consumer-facing version of the demo. Simpler UI, more emphasis on plain English.
+
+- Same input form as demo but add: Zillow Zestimate ($) as the first field
+- Large risk badge front and centre: OVERPRICED / FAIR / UNDERPRICED
+- Arc/gauge SVG component (PredictionGauge.tsx) showing logerror on a -0.1 to +0.1 scale
+- Price range card: "Zillow says $850,000 — our model suggests true value is $812,000–$831,000"
+- 3 reasons written as plain sentences (from SHAP mock)
+- Neighbourhood context: "In this cluster, 63% of properties have positive logerror — Zillow tends to overestimate here"
+- Buyer/Seller advice toggle:
+  Buyer: "Be cautious — consider negotiating below Zestimate"
+  Seller: "Zestimate may be in your favour — list near or above it"
+- Mobile responsive
+
+───────────────────────────────────────
+7. SHAP EXPLAINABILITY PAGE (new page: app/explainer/page.tsx)
+───────────────────────────────────────
+- Same input form as demo
+- "Surprise me" button fills form with a random realistic property
+- Waterfall chart (horizontal BarChart, Recharts) showing each feature's SHAP contribution
+- Feature importance bar chart (absolute SHAP values ranked)
+- Prediction card: logerror + interpretation text
+- Each feature row has a tooltip explaining what it means in plain English
+- lib/shapMock.ts: generate SHAP values proportional to feature inputs
+
+───────────────────────────────────────
+8. GEO HEATMAP DASHBOARD (new page: app/heatmap/page.tsx)
+───────────────────────────────────────
+Use react-leaflet (install it). Show a map of LA/Orange/Ventura counties.
+
+- Centre: [34.05, -118.24], zoom 9
+- Heatmap layer using ~300 mock property points (data/mockGeoData.ts):
+  Generate realistic lat/lon points within LA county bounds (33.7–34.4 lat, -118.9 to -117.6 lon)
+  Add Orange County (33.5–33.9, -118.1 to -117.4) and Ventura (34.1–34.5, -119.2 to -118.5)
+  Each point has: lat, lon, logerror, county, cluster_id
+- Colour markers by logerror: red (>0.05), orange (0.01–0.05), gray (-0.01–0.01), teal (-0.05 to -0.01), blue (<-0.05)
+- Sidebar filters: County selector, logerror range slider
+- Click a marker: popup showing logerror, county, cluster_id, interpretation
+- Legend explaining colour scale
+- Note at top: "Based on 300 representative sample properties"
+
+───────────────────────────────────────
+9. MODEL MONITORING DASHBOARD (new page: app/monitoring/page.tsx)
+───────────────────────────────────────
+Simulates what production monitoring looks like.
+
+Overview stat cards:
+- Current RMSE: 0.0742 | Status: HEALTHY (green)
+- Predictions served: 1,284,592 (simulated)
+- Data drift alerts: 2 active
+- Model uptime: 99.8%
+
+Charts (all Recharts, all mock data):
+a) Rolling weekly RMSE line chart (12 months) — add threshold line at 0.080 labelled "Alert threshold"
+   Week 1–8: stable ~0.074, Week 9–10: slight spike to 0.077, Week 11–12: back to 0.074
+b) Feature drift panel: 5 features each with a small histogram overlay (baseline vs current month)
+   Mark tax_ratio with PSI=0.24 as "DRIFT DETECTED" (amber badge)
+c) logerror distribution: baseline vs current month overlaid area charts
+d) Prediction volume bar chart (30 days) + 7-day moving average line
+e) Alert log table: date, feature, drift type, severity, status (Resolved / Open)
+
+"Simulate drift event" button: triggers tax_ratio drift spike animation and adds a new alert row.
+
+───────────────────────────────────────
+10. BATCH SCORING PIPELINE PAGE (new page: app/pipeline/page.tsx)
+───────────────────────────────────────
+Visual explainer of how the batch scoring works — not a running script, a visual diagram.
+
+- Step-by-step process diagram using SVG or styled divs:
+  Load CSV (2.9M rows) → Chunk (50K rows each) → Feature Engineering → 
+  Cluster Assignment → Target Encoding → Ensemble Predict → Save Parquet → Fast Lookup
+- Animated progress bar showing "scoring" in progress (CSS animation, loops)
+- Stats: 58 chunks × 50K rows, estimated runtime: ~12 minutes
+- Output schema table: parcelid | logerror | confidence_low | confidence_high | county | cluster_id
+- Sample output table showing 5 mock rows
+- A "Download sample output" button that triggers download of a small mock CSV
+
+───────────────────────────────────────
+11. NAVIGATION (update Navbar.tsx)
+───────────────────────────────────────
+Update the navbar to include all new pages:
+- Home (existing)
+- Demo ← NEW (highlight this one with a subtle accent border — it's the key page)
+- Risk Checker ← NEW
+- Explainer ← NEW
+- Heatmap ← NEW
+- Monitoring ← NEW
+- Pipeline ← NEW
+
+On mobile, collapse into a hamburger menu.
+
+───────────────────────────────────────
+12. DATA & UTILITIES (update/create files)
+───────────────────────────────────────
+Create or update these shared files:
+
+data/mockData.ts — add:
+- countyStats: mean logerror per county
+- ageGroupStats: mean logerror per age bucket
+- modelJourney: array of {model, rmse} for the line chart
+- waterfallData: SHAP waterfall for the Pasadena example
+- monitoringData: weekly RMSE, feature drift, alert log, prediction volumes
+
+data/mockGeoData.ts — create:
+- 300 mock property points with lat/lon/logerror/county/cluster_id
+
+lib/featureEngineering.ts — create:
+- computeFeatures(inputs) → engineered feature object
+
+lib/mockPredictor.ts — create:
+- predict(features) → { logerror, confidence_low, confidence_high, shapValues, riskBand }
+
+lib/shapMock.ts — create:
+- generateShapValues(features) → ranked array of {feature, value, contribution}
+
+══════════════════════════════════════════
+DESIGN REQUIREMENTS
+══════════════════════════════════════════
+
+- Dark theme throughout — match existing globals.css
+- All charts use Recharts (already installed) — no new chart libraries
+- Use react-leaflet for the heatmap (npm install react-leaflet leaflet)
+- All pages must be responsive (mobile + desktop)
+- Use TypeScript throughout — no any types
+- All mock data must be realistic and consistent across pages
+  (same property inputs on demo page → same SHAP on explainer page)
+- Loading states on all interactive elements
+- Smooth transitions between risk bands on the demo page
+
+══════════════════════════════════════════
+OUTPUT INSTRUCTIONS
+══════════════════════════════════════════
+
+1. Start with the file tree — show the complete project structure
+2. Create files in this order:
+   a. data/ files first (mockData.ts, mockGeoData.ts)
+   b. lib/ utilities (featureEngineering.ts, mockPredictor.ts, shapMock.ts)
+   c. Shared components (PredictionGauge.tsx, RiskBadge.tsx, WaterfallChart.tsx)
+   d. Update existing components (Hero.tsx, ModelComparison.tsx, SHAPSection.tsx, Navbar.tsx)
+   e. New page files in order: demo, risk-checker, explainer, heatmap, monitoring, pipeline
+   f. Update app/page.tsx to include CountyAnalysis and new sections
+3. For each file: output the complete file — no truncation, no "// ... rest of component"
+4. After all files: provide npm install command for any new dependencies
+5. End with: a checklist of every file created/modified
+
+The demo page (app/demo/page.tsx) is the most important — make it the most polished.

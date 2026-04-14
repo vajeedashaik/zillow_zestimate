@@ -1,0 +1,30 @@
+I have a Zillow Zestimate residual error prediction ML project. Here is full context:
+
+PROJECT SUMMARY:
+- Model: Stacked ensemble (XGBoost + LightGBM + CatBoost + Ridge meta), CV RMSE = 0.0742
+- Target: logerror = log(Zestimate) - log(SalePrice), clipped at p1/p99
+- Key features monitored: tax_ratio, geo_cluster_te, living_area_ratio, property_age, county_te
+- Existing site: Next.js 16 + Tailwind CSS + Recharts, dark theme
+
+TASK:
+Build a model monitoring dashboard as a new page in the existing Next.js showcase site that simulates what a real production monitoring system would look like.
+
+REQUIREMENTS:
+1. Overview cards (top of page):
+   - Current CV RMSE (0.0742), baseline RMSE, drift status (OK / Warning / Alert)
+   - Total predictions served (simulated counter), uptime
+2. RMSE over time chart: line chart showing rolling weekly RMSE over 12 simulated months — add a threshold line at 0.08 (alert level)
+3. Feature drift panel: for each of the 5 key features, show a distribution comparison chart (baseline vs current month) using a small histogram or density curve — highlight features where PSI (Population Stability Index) > 0.2
+4. logerror distribution chart: overlaid baseline vs current distribution to show target drift
+5. Prediction volume chart: bar chart of daily prediction counts over 30 days with a 7-day moving average line
+6. Alert log table: simulated list of past alerts (date, feature, drift type, severity, status: resolved/open)
+7. All charts use Recharts, all data is simulated/mock
+8. Add a "Simulate drift event" button that injects a spike in tax_ratio drift and triggers an alert state
+
+OUTPUT:
+- app/monitoring/page.tsx
+- components/monitoring/RmseChart.tsx
+- components/monitoring/FeatureDriftPanel.tsx
+- components/monitoring/AlertLog.tsx
+- data/mockMonitoringData.ts
+- Add Monitoring link to existing Navbar.tsx

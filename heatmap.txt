@@ -1,0 +1,32 @@
+I have a Zillow Zestimate residual error prediction ML project. Here is full context:
+
+PROJECT SUMMARY:
+- Goal: Predict logerror = log(Zestimate) - log(SalePrice) for California properties
+- Dataset: properties_2016.csv (~2.9M rows) covering LA (FIPS 6037), Orange (FIPS 6059), Ventura (FIPS 6111) counties
+- Spatial features: latitude, longitude, geo_cluster (KMeans k=25 on normalised lat/lon), geo_cluster_density, cluster_mean_tax
+- SHAP values available from XGBoost TreeExplainer ranking feature importance per property
+- Existing site: Next.js 16 with Tailwind CSS, Recharts, dark theme
+
+TASK:
+Build an interactive geographic heatmap dashboard as a Next.js page/component that visualises Zestimate error hotspots.
+
+REQUIREMENTS:
+1. Use Leaflet.js (react-leaflet) or deck.gl for the map — must work in Next.js App Router
+2. Show a heatmap layer of logerror values across LA/Orange/Ventura counties
+3. Show the 25 KMeans cluster boundaries as polygon overlays with cluster ID labels
+4. Colour scheme: red = high positive logerror (Zestimate overestimated), blue = negative (underestimated), white = near 0
+5. Sidebar filters:
+   - County selector (All / LA / Orange / Ventura)
+   - logerror range slider (-0.5 to +0.5)
+   - Property age range (0–100 years)
+6. On cluster click: show popup with cluster stats (mean logerror, property count, top SHAP feature)
+7. Use mock/simulated data for rendering (since we cannot load the full 2.9M CSV in browser) — generate realistic mock data points for ~500 properties per cluster
+8. Match the existing dark theme (Tailwind dark classes, same colour palette as current site)
+9. Add a legend explaining the colour scale
+
+OUTPUT:
+- components/GeoHeatmap.tsx (main map component)
+- components/HeatmapSidebar.tsx (filter panel)
+- data/mockGeoData.ts (simulated property coordinates + logerror values)
+- Any necessary map CSS imports
+- Instructions for installing react-leaflet or deck.gl in the existing Next.js project

@@ -1,0 +1,39 @@
+I have a Zillow Zestimate residual error prediction ML project. Here is full context:
+
+PROJECT SUMMARY:
+- Goal: Predict logerror = log(Zestimate) - log(SalePrice)
+- Positive logerror → Zestimate overestimated (seller advantage)
+- Negative logerror → Zestimate underestimated (buyer opportunity)
+- Best model: Stacked ensemble, CV RMSE = 0.0742
+- Existing site: Next.js 16 + Tailwind CSS + Recharts, dark theme
+
+TASK:
+Build a consumer-facing "Zestimate Risk Checker" as a new page in the existing Next.js site. A buyer or seller inputs property details and gets a plain-English risk assessment.
+
+REQUIREMENTS:
+1. Clean, card-based input form:
+   - Zillow Zestimate value ($)
+   - Year built, Finished Sq Ft, Lot Size Sq Ft
+   - Tax Amount ($), Tax Value ($)
+   - County (LA / Orange / Ventura dropdown)
+   - Transaction month (month picker)
+2. On submit, compute engineered features client-side and run a mock model prediction
+3. Results page / section showing:
+   a. Risk badge: OVERPRICED / FAIR / UNDERPRICED with colour coding (red / green / blue)
+   b. Predicted logerror value with a visual gauge (needle/arc component)
+   c. Plain-English explanation: "Based on comparable properties in this cluster, Zillow's estimate may be X% higher than actual sale price"
+   d. Estimated true price range: Zestimate ± confidence interval converted to dollars
+   e. Top 3 reasons (from mock SHAP values) driving the prediction, written as sentences
+   f. Neighbourhood context card: how this property's predicted error compares to the county average
+4. Add a "What does this mean for me?" toggle that shows buyer vs seller advice
+5. Make it mobile-responsive
+6. The tone should be consumer-friendly, not technical — no ML jargon in the UI
+
+OUTPUT:
+- app/risk-checker/page.tsx
+- components/RiskBadge.tsx
+- components/PredictionGauge.tsx (arc/needle SVG gauge component)
+- components/PriceRangeCard.tsx
+- components/NeighbourhoodContext.tsx
+- lib/riskPredictor.ts (client-side mock prediction + feature engineering)
+- Add Risk Checker link to existing Navbar.tsx

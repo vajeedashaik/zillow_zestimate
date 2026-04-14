@@ -1,0 +1,19 @@
+# requirements_batch.txt
+# Dependencies for the Zillow batch scoring pipeline.
+# Install with:  pip install -r requirements_batch.txt
+
+# ── Core data stack ────────────────────────────────────────────────────────────
+numpy==1.26.4
+pandas==2.2.2
+pyarrow==16.1.0          # Parquet read/write (snappy compression)
+
+# ── ML models (must match versions used during training) ──────────────────────
+scikit-learn==1.4.2
+xgboost==2.0.3
+lightgbm==4.3.0
+catboost==1.2.5
+joblib==1.4.2
+
+# ── Progress & monitoring ──────────────────────────────────────────────────────
+tqdm==4.66.4             # chunk-level progress bar
+psutil==5.9.8            # RSS memory tracking per chunk
