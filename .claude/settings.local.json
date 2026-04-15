@@ -1,7 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(powershell -ExecutionPolicy Bypass -Command ' *)",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"c:\\\\Users\\\\kittu\\\\OneDrive\\\\Desktop\\\\zillow_zestimate\\\\verify-cloud.ps1\")",
+      "Bash(aws iam *)",
+      "Bash(aws sts *)",
+      "Bash(aws configure *)",
+      "Bash(gcloud services *)",
+      "Bash(aws lambda *)",
+      "Bash(wait)",
+      "Bash(powershell -Command \"gcloud services enable cloudfunctions.googleapis.com --project cap-expt-492003 2>&1\")",
+      "Bash(powershell -Command 'try { Invoke-WebRequest -Uri '\\\\''https://i3xtbsmgemr5fn7x5pj32jptxi0shfby.lambda-url.us-east-1.on.aws/'\\\\'' -Method GET -TimeoutSec 10 -UseBasicParsing } catch { $_.Exception.Response.StatusCode; $_.Exception.Message }')",
+      "Bash(powershell -Command ' *)",
+      "Bash(powershell -Command \"gcloud auth print-access-token --project cap-expt-492003 2>&1\")",
+      "Bash(powershell -Command \"gcloud firestore databases list --project cap-expt-492003 2>&1\")",
+      "Bash(powershell -Command \"gcloud auth print-access-token --project cap-expt-492003 2>&1 | Select-Object -First 1\")",
+      "Bash(grep -v \".next\" echo \"---\" ls \"c:\\\\Users\\\\kittu\\\\OneDrive\\\\Desktop\\\\zillow_zestimate/app\")",
+      "Bash(powershell -Command \"gcloud auth list 2>&1\")",
+      "Bash(powershell -Command \"gcloud firestore databases create --project cap-expt-492003 --location us-east1 2>&1\")",
+      "Bash(xargs grep *)",
+      "Bash(powershell -Command \"Select-String -Path 'c:\\\\Users\\\\kittu\\\\OneDrive\\\\Desktop\\\\zillow_zestimate\\\\main.py' -Pattern 'boto3|dynamodb|ses|DynamoDB' | Select-Object LineNumber,Line\")",
+      "Bash(powershell -Command \"Select-String -Path 'c:\\\\Users\\\\kittu\\\\OneDrive\\\\Desktop\\\\zillow_zestimate\\\\main.py' -Pattern 'boto3|dynamodb|ses|DynamoDB|prediction_count|count_lambda'\")",
+      "Bash(powershell -Command \"gcloud storage ls gs://zillow-zestimate-demo/ 2>&1\")",
+      "Bash(powershell -Command \"gcloud storage cp gs://zillow-zestimate-demo/sample_prediction.csv C:\\\\Users\\\\kittu\\\\AppData\\\\Local\\\\Temp\\\\sample_predictions.csv 2>&1\")"
     ]
   }
 }
