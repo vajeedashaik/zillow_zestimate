@@ -18,6 +18,7 @@ const links: NavLink[] = [
   { href: '/heatmap', label: 'Heatmap' },
   { href: '/monitoring', label: 'Monitoring' },
   { href: '/pipeline', label: 'Pipeline' },
+  { href: '/services', label: 'Services' },
 ];
 
 export default function Navbar() {
