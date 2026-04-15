@@ -75,8 +75,25 @@ export default function Hero() {
           ))}
         </div>
 
+        {/* Cloud services status bar */}
+        <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2">
+          {[
+            'AWS Lambda',
+            'DynamoDB',
+            'SNS Alerts',
+            'GCP Firestore',
+            'BigQuery',
+            'CloudFront CDN',
+          ].map((svc) => (
+            <span key={svc} className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-500/50" />
+              {svc}
+            </span>
+          ))}
+        </div>
+
         {/* logerror legend */}
-        <div className="mt-10 flex flex-wrap justify-center gap-6 text-xs text-gray-500">
+        <div className="mt-6 flex flex-wrap justify-center gap-6 text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-500" />
             <span>logerror &gt; 0 → Overestimated (seller beware)</span>

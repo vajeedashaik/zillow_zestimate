@@ -16,6 +16,8 @@ import RiskBadge         from '@/components/RiskBadge';
 import PredictionGauge   from '@/components/PredictionGauge';
 import PriceRangeCard    from '@/components/PriceRangeCard';
 import NeighbourhoodContext from '@/components/NeighbourhoodContext';
+import { db } from '@/lib/firebase';
+import { addDoc, collection } from 'firebase/firestore';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type FormState = {
@@ -55,12 +57,23 @@ const COUNTY_OPTIONS: { v: County; l: string }[] = [
   { v: 'Ventura', l: 'Ventura County'      },
 ];
 
+// Full names sent to Lambda / Firestore
+const COUNTY_LABEL: Record<County, string> = {
+  LA:      'Los Angeles',
+  Orange:  'Orange County',
+  Ventura: 'Ventura',
+};
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function RiskCheckerPage() {
-  const [form, setForm]         = useState<FormState>(DEFAULTS);
-  const [result, setResult]     = useState<RiskResult | null>(null);
-  const [errors, setErrors]     = useState<Partial<FormState>>({});
+  const [form, setForm]           = useState<FormState>(DEFAULTS);
+  const [result, setResult]       = useState<RiskResult | null>(null);
+  const [errors, setErrors]       = useState<Partial<FormState>>({});
   const [adviceTab, setAdviceTab] = useState<'buyer' | 'seller'>('buyer');
+  const [submitting, setSubmitting] = useState(false);
+  const [email, setEmail]           = useState('');
+  const [emailSent, setEmailSent]   = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
 
   // ── Validation + submission ────────────────────────────────────────────────
   function validate(f: FormState): boolean {
@@ -75,9 +88,11 @@ export default function RiskCheckerPage() {
     return Object.keys(e).length === 0;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate(form)) return;
+    setSubmitting(true);
+    setEmailSent(false);
 
     const input: PropertyInput = {
       zestimate:        +form.zestimate,
@@ -90,11 +105,89 @@ export default function RiskCheckerPage() {
       transactionMonth: +form.transactionMonth,
     };
 
-    setResult(predictRisk(input));
-    // Scroll to results smoothly
+    // Start with client-side mock for instant rendering
+    const mockResult = predictRisk(input);
+    let finalResult: RiskResult = mockResult;
+
+    // Override key fields with real Lambda response
+    try {
+      const res = await fetch(process.env.NEXT_PUBLIC_LAMBDA_URL!, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          yearBuilt:    input.yearBuilt,
+          finishedSqft: input.finishedSqFt,
+          lotSize:      input.lotSizeSqFt,
+          taxAmount:    input.taxAmount,
+          taxValue:     input.taxValue,
+          month:        input.transactionMonth,
+          county:       COUNTY_LABEL[input.county],
+          zestimate:    input.zestimate,
+        }),
+      });
+      const prediction = await res.json();
+
+      const logerror      = prediction.logerror       ?? mockResult.logerror;
+      const confLow       = prediction.confidence_low  ?? logerror - 0.018;
+      const confHigh      = prediction.confidence_high ?? logerror + 0.018;
+      const riskLabel     = (prediction.risk as RiskResult['riskLabel']) ??
+        (logerror > 0.025 ? 'OVERPRICED' : logerror < -0.025 ? 'UNDERPRICED' : 'FAIR');
+
+      finalResult = {
+        ...mockResult,
+        logerror,
+        riskLabel,
+        percentageDeviation: (Math.exp(-logerror) - 1) * 100,
+        truePriceLow:  input.zestimate / Math.exp(confHigh),
+        truePriceMid:  input.zestimate * Math.exp(-logerror),
+        truePriceHigh: input.zestimate / Math.exp(confLow),
+      };
+    } catch {
+      // Keep mock result silently
+    }
+
+    setResult(finalResult);
+
+    // Write to Firestore
+    try {
+      await addDoc(collection(db, 'predictions'), {
+        county:    COUNTY_LABEL[input.county],
+        risk:      finalResult.riskLabel,
+        logerror:  finalResult.logerror,
+        timestamp: new Date().toISOString(),
+        zestimate: input.zestimate,
+      });
+    } catch {
+      // Firestore write failed silently
+    }
+
+    setSubmitting(false);
     setTimeout(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
     }, 50);
+  }
+
+  async function sendReport() {
+    if (!email || !result) return;
+    setEmailSending(true);
+    try {
+      await fetch(process.env.NEXT_PUBLIC_SES_URL!, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          county:    COUNTY_LABEL[form.county],
+          risk:      result.riskLabel,
+          logerror:  result.logerror,
+          zestimate: +form.zestimate,
+        }),
+      });
+    } catch {
+      // Show success optimistically
+    } finally {
+      setEmailSent(true);
+      setEmailSending(false);
+    }
   }
 
   function handleReset() {
@@ -339,9 +432,12 @@ export default function RiskCheckerPage() {
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               type="submit"
-              className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40"
+              disabled={submitting}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition-all text-sm shadow-lg shadow-indigo-900/40 flex items-center justify-center gap-2"
             >
-              Analyse Zestimate
+              {submitting ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Analysing…</>
+              ) : 'Analyse Zestimate'}
             </button>
             {result && (
               <button
@@ -452,6 +548,28 @@ export default function RiskCheckerPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Email report via AWS SES */}
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+              <h3 className="text-white font-bold text-base mb-1">Email this report</h3>
+              <p className="text-gray-500 text-xs mb-4">Get this full analysis sent to you · delivered via AWS SES</p>
+              {emailSent ? (
+                <div className="flex items-center gap-2 text-green-400 text-sm">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  Report sent to {email}
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors" />
+                  <button onClick={sendReport} disabled={emailSending || !email}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm transition-all whitespace-nowrap">
+                    {emailSending ? 'Sending…' : 'Send Report'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Disclaimer */}

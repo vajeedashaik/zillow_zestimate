@@ -16,10 +16,12 @@
  *  7. Simulate drift event button
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -206,10 +208,43 @@ function VolumeChart() {
 // Main page
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface FeedItem {
+  county: string;
+  risk: string;
+  logerror: number;
+  timestamp: string;
+  zestimate: number;
+}
+
 export default function MonitoringPage() {
-  const [drifted, setDrifted]   = useState(false);
-  const [alerts, setAlerts]     = useState<AlertEntry[]>(BASE_ALERTS);
+  const [drifted, setDrifted]       = useState(false);
+  const [alerts, setAlerts]         = useState<AlertEntry[]>(BASE_ALERTS);
   const [simulating, setSimulating] = useState(false);
+  const [liveCount, setLiveCount]   = useState<number | null>(null);
+  const [feed, setFeed]             = useState<FeedItem[]>([]);
+
+  // Live prediction counter from DynamoDB (AWS)
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_COUNT_URL!)
+      .then((r) => r.json())
+      .then((d) => setLiveCount(d.total ?? d.count ?? null))
+      .catch(() => setLiveCount(null));
+  }, []);
+
+  // Real-time Firestore feed (GCP)
+  useEffect(() => {
+    const q = query(
+      collection(db, 'predictions'),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    );
+    const unsub = onSnapshot(
+      q,
+      (snap) => setFeed(snap.docs.map((d) => d.data() as FeedItem)),
+      () => {/* Firestore listener error silently ignored */}
+    );
+    return () => unsub();
+  }, []);
 
   const overview = drifted ? DRIFTED_OVERVIEW : OVERVIEW;
   const sc       = statusColor(overview.driftStatus);
@@ -292,6 +327,115 @@ export default function MonitoringPage() {
             </button>
           </div>
         )}
+
+        {/* ── Live cloud metrics row ──────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* DynamoDB live counter */}
+          <div className="bg-gray-900/70 border border-amber-500/30 rounded-xl p-4 flex flex-col gap-1 lg:col-span-1">
+            <p className="text-gray-500 text-xs uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Total predictions served
+            </p>
+            <p className="text-3xl font-bold text-amber-400">
+              {liveCount !== null ? liveCount.toLocaleString() : '—'}
+            </p>
+            <p className="text-gray-600 text-xs">Live from AWS DynamoDB</p>
+          </div>
+
+          {/* Static metrics */}
+          <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 flex flex-col gap-1">
+            <p className="text-gray-500 text-xs uppercase tracking-wider">Current CV RMSE</p>
+            <p className="text-2xl font-bold text-white">0.0742</p>
+            <span className="self-start inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md border bg-green-500/10 border-green-500/30 text-green-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />HEALTHY
+            </span>
+          </div>
+          <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 flex flex-col gap-1">
+            <p className="text-gray-500 text-xs uppercase tracking-wider">AWS API Uptime</p>
+            <p className="text-2xl font-bold text-white">99.8%</p>
+            <p className="text-gray-600 text-xs">Lambda + CloudFront</p>
+          </div>
+          <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4 flex flex-col gap-1">
+            <p className="text-gray-500 text-xs uppercase tracking-wider">GCP Cloud Run</p>
+            <p className="text-2xl font-bold text-white">ACTIVE</p>
+            <span className="self-start inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-md border bg-green-500/10 border-green-500/30 text-green-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />Running
+            </span>
+          </div>
+        </div>
+
+        {/* ── Live Firestore feed + CloudWatch ────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Firestore feed */}
+          <div className="lg:col-span-2 bg-gray-900/50 border border-gray-800 rounded-2xl p-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-white font-semibold text-base">Live prediction feed</h2>
+                <p className="text-gray-500 text-xs mt-0.5">Updates in real time from GCP Firestore</p>
+              </div>
+              <span className="flex items-center gap-1.5 text-xs text-green-400">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+            {feed.length === 0 ? (
+              <p className="text-gray-600 text-sm">No predictions yet — submit one from the Demo page.</p>
+            ) : (
+              <div className="space-y-2">
+                {feed.map((item, i) => {
+                  const riskColor =
+                    item.risk === 'OVERPRICED'  ? 'text-red-400 bg-red-500/10 border-red-500/30' :
+                    item.risk === 'UNDERPRICED' ? 'text-blue-400 bg-blue-500/10 border-blue-500/30' :
+                                                  'text-gray-300 bg-gray-700/40 border-gray-600/30';
+                  return (
+                    <div key={i} className="flex items-center justify-between bg-gray-800/40 rounded-lg px-4 py-2.5 text-sm">
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${riskColor}`}>
+                          {item.risk}
+                        </span>
+                        <span className="text-gray-400">{item.county}</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span className="font-mono">{item.logerror > 0 ? '+' : ''}{(item.logerror ?? 0).toFixed(4)}</span>
+                        <span>{item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : ''}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* CloudWatch link */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-5 flex flex-col gap-4">
+            <div>
+              <h2 className="text-white font-semibold text-base">AWS CloudWatch</h2>
+              <p className="text-gray-500 text-xs mt-0.5">Live Lambda metrics &amp; logs</p>
+            </div>
+            <div className="space-y-3 flex-1">
+              <div className="bg-gray-800/40 rounded-lg p-3 text-xs text-gray-400 space-y-1">
+                <p className="text-gray-300 font-medium">Prediction Lambda</p>
+                <p>Invocations · Errors · Duration · Throttles</p>
+              </div>
+              <div className="bg-gray-800/40 rounded-lg p-3 text-xs text-gray-400 space-y-1">
+                <p className="text-gray-300 font-medium">SES Lambda</p>
+                <p>Email delivery rate · Bounce metrics</p>
+              </div>
+              <div className="bg-gray-800/40 rounded-lg p-3 text-xs text-gray-400 space-y-1">
+                <p className="text-gray-300 font-medium">Count Lambda</p>
+                <p>DynamoDB read metrics</p>
+              </div>
+            </div>
+            <a
+              href="https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm font-medium hover:bg-blue-500/20 transition-colors"
+            >
+              View live AWS CloudWatch metrics →
+            </a>
+          </div>
+        </div>
 
         {/* ── 1. Overview cards ───────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">

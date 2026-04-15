@@ -24,6 +24,12 @@ import {
   type County,
 } from '@/lib/shapMock';
 import PredictionCard from '@/components/PredictionCard';
+import { db } from '@/lib/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+
+const COUNTY_LABEL: Record<County, string> = {
+  LA: 'Los Angeles', Orange: 'Orange County', Ventura: 'Ventura',
+};
 
 // Recharts uses browser APIs — SSR-safe dynamic import
 const WaterfallChart = dynamic(() => import('@/components/WaterfallChart'), { ssr: false });
@@ -67,15 +73,29 @@ export default function ExplainerPage() {
     setInput((prev) => ({ ...prev, [key]: val }));
   }
 
+  function writeToFirestore(inp: PropertyInput, shapResult: ShapResult) {
+    addDoc(collection(db, 'predictions'), {
+      county:    COUNTY_LABEL[inp.county],
+      risk:      shapResult.prediction > 0.03 ? 'OVERPRICED' : shapResult.prediction < -0.03 ? 'UNDERPRICED' : 'FAIR',
+      logerror:  shapResult.prediction,
+      timestamp: new Date().toISOString(),
+      zestimate: 0,
+    }).catch(() => {/* Firestore write failed silently */});
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setResult(computeShap(input));
+    const shapResult = computeShap(input);
+    setResult(shapResult);
+    writeToFirestore(input, shapResult);
   }
 
   function handleSurprise() {
     const rp = randomProperty();
     setInput(rp);
-    setResult(computeShap(rp));
+    const shapResult = computeShap(rp);
+    setResult(shapResult);
+    writeToFirestore(rp, shapResult);
   }
 
   return (
