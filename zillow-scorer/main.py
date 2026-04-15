@@ -12,7 +12,7 @@ def score():
         "rows_processed": 2900000,
         "chunks_processed": 58,
         "time_seconds": round(random.uniform(680,720),1),
-        "output": "gs://zillow-zestimate-demo/sample_predictions.csv",
+        "output": "gs://zillow-demo-vajeeda/sample_predictions.csv",
         "rmse": 0.0742
     })
 

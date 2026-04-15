@@ -23,7 +23,13 @@
       "Bash(powershell -Command \"Select-String -Path 'c:\\\\Users\\\\kittu\\\\OneDrive\\\\Desktop\\\\zillow_zestimate\\\\main.py' -Pattern 'boto3|dynamodb|ses|DynamoDB' | Select-Object LineNumber,Line\")",
       "Bash(powershell -Command \"Select-String -Path 'c:\\\\Users\\\\kittu\\\\OneDrive\\\\Desktop\\\\zillow_zestimate\\\\main.py' -Pattern 'boto3|dynamodb|ses|DynamoDB|prediction_count|count_lambda'\")",
       "Bash(powershell -Command \"gcloud storage ls gs://zillow-zestimate-demo/ 2>&1\")",
-      "Bash(powershell -Command \"gcloud storage cp gs://zillow-zestimate-demo/sample_prediction.csv C:\\\\Users\\\\kittu\\\\AppData\\\\Local\\\\Temp\\\\sample_predictions.csv 2>&1\")"
+      "Bash(powershell -Command \"gcloud storage cp gs://zillow-zestimate-demo/sample_prediction.csv C:\\\\Users\\\\kittu\\\\AppData\\\\Local\\\\Temp\\\\sample_predictions.csv 2>&1\")",
+      "Bash(ls \"c:/Users/kittu/OneDrive/Desktop/zillow_zestimate/\"*.py)",
+      "Bash(py --version)",
+      "Bash(where python3 *)",
+      "Bash(where py *)",
+      "Bash(py seed_all.py)",
+      "Bash(py seed_all.py --aws-only)"
     ]
   }
 }

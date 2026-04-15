@@ -13,9 +13,10 @@ You need a Firebase service-account JSON.  Download it from:
 Save it as  firebase-service-account.json  next to this script (it is gitignored).
 """
 
-import random
+import sys, random
 import math
 from datetime import datetime, timedelta
+sys.stdout.reconfigure(encoding='utf-8')
 
 # ── Try to import firebase_admin ───────────────────────────────────────────────
 try:

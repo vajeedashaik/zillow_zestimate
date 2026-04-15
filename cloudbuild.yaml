@@ -1,0 +1,39 @@
+# cloudbuild.yaml
+# Triggered on push to main — builds and deploys zillow-scorer to Cloud Run
+
+steps:
+  # Step 1: Build the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - "-t"
+      - "gcr.io/cap-expt-492003/zillow-scorer:$COMMIT_SHA"
+      - "-t"
+      - "gcr.io/cap-expt-492003/zillow-scorer:latest"
+      - "zillow-scorer"
+
+  # Step 2: Push to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - push
+      - "gcr.io/cap-expt-492003/zillow-scorer:$COMMIT_SHA"
+
+  # Step 3: Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - zillow-scorer
+      - "--image=gcr.io/cap-expt-492003/zillow-scorer:$COMMIT_SHA"
+      - "--region=us-central1"
+      - "--allow-unauthenticated"
+      - "--memory=512Mi"
+      - "--cpu=1"
+
+images:
+  - "gcr.io/cap-expt-492003/zillow-scorer:$COMMIT_SHA"
+  - "gcr.io/cap-expt-492003/zillow-scorer:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
