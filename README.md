@@ -26,7 +26,6 @@ A positive logerror means Zillow **overestimated** the home value (seller advant
 - [Engineered Features](#engineered-features)
 - [County Error Analysis](#county-error-analysis)
 - [Tech Stack](#tech-stack)
-- [Environment Variables](#environment-variables)
 - [Getting Started](#getting-started)
 - [Seeding Cloud Services](#seeding-cloud-services)
 - [Project Structure](#project-structure)
@@ -166,34 +165,6 @@ Older homes (60+ years) trend negative (underestimated); newer homes trend posit
 | Maps | Leaflet + react-leaflet + leaflet.heat |
 | **Cloud — AWS** | Lambda (×3), DynamoDB, S3, CloudWatch, SNS, SQS, CloudFront, Step Functions, SES, Amplify |
 | **Cloud — GCP** | Firestore, BigQuery, Cloud Run, Cloud Functions, Cloud Storage, Cloud Monitoring, Cloud Logging, Cloud Scheduler, Cloud Build, Secret Manager |
-
----
-
-## Environment Variables
-
-Create `.env.local` at the project root:
-
-```bash
-# AWS Lambda function URLs
-NEXT_PUBLIC_LAMBDA_URL=https://<prediction-lambda>.lambda-url.us-east-1.on.aws/
-NEXT_PUBLIC_COUNT_URL=https://<count-lambda>.lambda-url.us-east-1.on.aws/
-NEXT_PUBLIC_SES_URL=https://<ses-lambda>.lambda-url.us-east-1.on.aws/
-
-# AWS infrastructure
-SNS_TOPIC_ARN=arn:aws:sns:us-east-1:<account-id>:zillow-price-alerts
-SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/<account-id>/zillow-prediction-queue
-CLOUDFRONT_DOMAIN=d3al9xtnn673r8.cloudfront.net
-
-# GCP
-NEXT_PUBLIC_CLOUD_RUN_URL=https://<cloud-run-url>.run.app
-NEXT_PUBLIC_BQ_KEY=<bigquery-api-key>
-NEXT_PUBLIC_GCP_PROJECT=<gcp-project-id>
-NEXT_PUBLIC_FIREBASE_API_KEY=<firebase-api-key>
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<project-id>.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=<project-id>
-```
-
-All `NEXT_PUBLIC_` variables are exposed to the browser. The non-prefixed variables are server-side only.
 
 ---
 
