@@ -1,8 +1,36 @@
 # Zillow Zestimate Residual Error Prediction
 
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-10_services-FF9900?logo=amazonaws&logoColor=white)
+![GCP](https://img.shields.io/badge/GCP-10_services-4285F4?logo=googlecloud&logoColor=white)
+
 An interactive Next.js showcase site built around a stacked ensemble ML model that predicts **logerror = log(Zestimate) − log(SalePrice)** for 2.9 million Southern California properties.
 
 A positive logerror means Zillow **overestimated** the home value (seller advantage). A negative logerror means it **underestimated** (buyer opportunity). The site surfaces these errors with explainability, plain-English risk advice, and **live multi-cloud integration across 20 AWS and GCP services**.
+
+**Highlights**
+- Stacked ensemble (XGBoost + LightGBM + CatBoost → Ridge meta-model) beats the best single model by 6.2% CV RMSE
+- 12 engineered features with leakage-safe, 5-fold cross-validated target encoding
+- 8 live pages wired to real AWS/GCP infrastructure — not mocked API calls
+- Full MLOps loop: batch scoring, monitoring dashboard, alerting, CI/CD
+
+## Contents
+
+- [Pages](#pages)
+- [Cloud Architecture — 20 Services](#cloud-architecture--20-services)
+- [Request Flow](#request-flow)
+- [Model Results](#model-results-5-fold-cv-rmse)
+- [Engineered Features](#engineered-features)
+- [County Error Analysis](#county-error-analysis)
+- [Tech Stack](#tech-stack)
+- [Environment Variables](#environment-variables)
+- [Getting Started](#getting-started)
+- [Seeding Cloud Services](#seeding-cloud-services)
+- [Project Structure](#project-structure)
+- [Dataset](#dataset)
 
 ---
 
@@ -294,3 +322,9 @@ zillow_zestimate/
 - Evaluation metric: RMSE on logerror
 
 For the batch scoring pipeline details, see [README_batch.md](README_batch.md).
+
+---
+
+## Note on Data
+
+This is a portfolio/demo project. The cloud integrations are real and live (actual Lambda invocations, Firestore writes, BigQuery queries, etc.), but they operate on data seeded by the scripts in [Seeding Cloud Services](#seeding-cloud-services) rather than production Zillow data.
